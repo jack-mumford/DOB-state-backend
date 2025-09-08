@@ -26,6 +26,7 @@ jobs:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       # If you prefer using a Storage Account access key for the backend instead of AAD, set this secret and remove ARM_USE_AZUREAD above:
       ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
     steps:
       - name: Checkout
@@ -37,12 +38,10 @@ jobs:
           terraform_version: 1.13.1
 
       # Login to Azure using OIDC (recommended). Requires the three secrets set above and a federated credential on the app registration.
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
+      - name: Setup Azure CLI
+        uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Terraform Format
         run: terraform fmt -check -diff

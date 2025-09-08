@@ -37,14 +37,15 @@ jobs:
         with:
           terraform_version: 1.13.1
 
-      # Login to Azure using OIDC (recommended). Requires the three secrets set above and a federated credential on the app registration.
+      # Run formatting first so it is independent of any cloud auth
+      - name: Terraform Format
+        run: terraform fmt -check -diff -recursive
+
+      # Login to Azure (service principal JSON via AZURE_CREDENTIALS secret)
       - name: Setup Azure CLI
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Format
-        run: terraform fmt -check -diff
 
       # Initialize. If your backend requires extra settings, prefer setting them via secrets/environment vars rather than hardcoding.
       - name: Terraform Init

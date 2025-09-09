@@ -1,4 +1,4 @@
-name: Terraform Apply on Main
+name: Terraform Main
 
 on:
   push:
@@ -9,21 +9,24 @@ permissions:
   id-token: write  # required for OIDC login to Azure
 
 jobs:
-  terraform-apply:
+  terraform:
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     env:
-      # Use the Service Principal JSON to set Terraform provider env vars
+      TF_INPUT: false
+      TF_CLI_ARGS_init: -no-color
+      TF_CLI_ARGS_validate: -no-color
+      TF_CLI_ARGS_plan: -no-color
+      # Authenticate Terraform azurerm provider using Service Principal (JSON in AZURE_CREDENTIALS)
       ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
       ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
       ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
       ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-
-      # Backend settings (container name defaults to tfstate if not set)
-      AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-      AZURE_BACKEND_CONTAINER: tfstate
+      # Backend auth to Storage (access key). Alternatively, assign RBAC and omit this.
+      ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}
+      # Also log in az CLI for any az commands used during the job
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
     steps:
@@ -35,7 +38,12 @@ jobs:
         with:
           terraform_version: 1.13.1
 
-      - name: Azure Login (Service Principal JSON)
+      # Run formatting first so it is independent of any cloud auth
+      - name: Terraform Format
+        run: terraform fmt -check -diff -recursive
+
+      # Login to Azure (service principal JSON via AZURE_CREDENTIALS secret)
+      - name: Setup Azure CLI & Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}

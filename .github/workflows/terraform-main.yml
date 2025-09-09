@@ -38,15 +38,6 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Ensure the backend container exists (idempotent)
-      - name: Ensure state container exists
-        run: |
-          az storage container create \
-            --name "${AZURE_BACKEND_CONTAINER}" \
-            --account-name "${AZURE_STORAGE_ACCOUNT_NAME}" \
-            --auth-mode login \
-            --only-show-errors
-
       - name: Terraform Init with backend-config flags
         run: terraform init -upgrade -backend-config="key=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" -backend-config="container_name=tfstate" -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}"
 

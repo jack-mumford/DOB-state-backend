@@ -43,7 +43,7 @@ jobs:
         run: terraform fmt -check -diff -recursive
 
       # Login to Azure (service principal JSON via AZURE_CREDENTIALS secret)
-      - name: Setup Azure CLI
+      - name: Setup Azure CLI & Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}

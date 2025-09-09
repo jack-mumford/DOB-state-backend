@@ -1,0 +1,64 @@
+name: Terraform Apply on Main
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Use the Service Principal JSON to set Terraform provider env vars
+      ARM_CLIENT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
+      ARM_CLIENT_SECRET: ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
+      ARM_TENANT_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
+
+      # Backend settings (container name defaults to tfstate if not set)
+      AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
+      AZURE_BACKEND_CONTAINER: tfstate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.1
+
+      - name: Azure Login (Service Principal JSON)
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Ensure the backend container exists (idempotent)
+      - name: Ensure state container exists
+        run: |
+          az storage container create \
+            --name "${AZURE_BACKEND_CONTAINER}" \
+            --account-name "${AZURE_STORAGE_ACCOUNT_NAME}" \
+            --auth-mode login \
+            --only-show-errors
+
+      - name: Terraform Init with backend-config flags
+        run: |
+          terraform init -upgrade \
+            -backend-config="storage_account_name=${AZURE_STORAGE_ACCOUNT_NAME}" \
+            -backend-config="container_name=${AZURE_BACKEND_CONTAINER}" \
+            -backend-config="key=prod.terraform.tfstate"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve tfplan

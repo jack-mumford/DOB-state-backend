@@ -50,7 +50,7 @@ jobs:
 
       # Initialize. If your backend requires extra settings, prefer setting them via secrets/environment vars rather than hardcoding.
       - name: Terraform Init
-        run: terraform init -upgrade
+        run: terraform init -upgrade -backend-config="key=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" -backend-config="container_name=tfstate" -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}"
 
       - name: Terraform Validate
         run: terraform validate

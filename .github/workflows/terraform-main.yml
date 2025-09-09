@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # required for OIDC login to Azure
 
 jobs:
   terraform-apply:
@@ -23,6 +24,7 @@ jobs:
       # Backend settings (container name defaults to tfstate if not set)
       AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
       AZURE_BACKEND_CONTAINER: tfstate
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
     steps:
       - name: Checkout
